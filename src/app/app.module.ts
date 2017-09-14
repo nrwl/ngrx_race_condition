@@ -75,30 +75,13 @@ let backendData = [
   {id: 1, value: 'two'}
 ];
 
-
 @Injectable()
 export class AppEffects {
-  @Effect() loadAll = this.actions.ofType('LOAD_ITEMS').switchMap(() => {
-    // we are coping the data first to simulate us reaching the backend quickly and then waiting
-    // for 4 seconds to get the response to the client
-    const copy = [{...backendData[0]}, {...backendData[1]}];
-    return timer(4000).map(() => {
-      return {
-        type: 'ITEMS_LOADED',
-        payload: copy
-      };
-    });
-  });
-
-  @Effect() loadOne = this.actions.ofType('LOAD_ITEM').switchMap((l: any) => {
-    return of({
-      type: 'ITEM_LOADED',
-      payload: backendData[l.payload.id]
-    });
+  @Effect() loadAllOrOne = this.actions.filter((a:any) => a.type === 'LOAD_ITEMS' || a.type === 'LOAD_ITEM').concatMap((a:any) => {
+    return a.type === 'LOAD_ITEM' ? this.handleLoadItem(a) : this.handleLoadItems(a);
   });
 
   @Effect() updateItem = this.actions.ofType('UPDATE_ITEM').concatMap((l: any) => {
-    // we are simulating waiting for 4 seconds to reach the backend
     return timer(4000).map(() => {
       const newBackendData = [{...backendData[0]}, {...backendData[1]}];
       newBackendData[l.payload.id].value = 'UPDATED';
@@ -113,7 +96,25 @@ export class AppEffects {
 
   constructor(private actions: Actions) {
   }
+
+  private handleLoadItem(l: any): any {
+    return of({
+      type: 'ITEM_LOADED',
+      payload: backendData[l.payload.id]
+    });
+  }
+
+  private handleLoadItems(l: any): any {
+    const copy = [{...backendData[0]}, {...backendData[1]}];
+    return timer(4000).map(() => {
+      return {
+        type: 'ITEMS_LOADED',
+        payload: copy
+      };
+    });
+  }
 }
+
 
 export function items(state, action) {
   switch (action.type) {
